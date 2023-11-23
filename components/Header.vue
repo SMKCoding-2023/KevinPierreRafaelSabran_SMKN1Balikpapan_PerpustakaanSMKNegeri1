@@ -6,6 +6,7 @@
                 <NuxtLink to="/" class="text-xl font-bold mx-5">Berkah Bersama Alta</NuxtLink></div>
                 <nav class="flex items-center gap-6">
                     <NuxtLink to="/" class="text-base">Home</NuxtLink>
+                    <NuxtLink to="/cart" class="text-base">Cart</NuxtLink>
                     <NuxtLink to="/product" class="text-
                     base">Products</NuxtLink>
                 </nav>
