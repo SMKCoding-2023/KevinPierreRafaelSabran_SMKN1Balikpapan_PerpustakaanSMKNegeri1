@@ -1,9 +1,23 @@
-<script lang="ts" setup>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useProductsStore } from '~/stores/products';
+import { useRouter } from 'vue-router';
 import { useCategoryStore } from '~/stores/category';
 import { useStorageStore } from '~/stores/storage';
-import { useProductsStore } from '~/stores/products';
 import type { FormField } from '~/types/products';
 import { storeToRefs } from 'pinia';
+
+const productId = ref<number | null>(null);
+
+const route = useRoute();
+
+onMounted(() => {
+  const routeId = route.fullPath.split('/')[3];
+  if (routeId) {
+    productId.value = parseInt(routeId);
+  }
+});
+
 const categoryStore = useCategoryStore();
 const storageStore = useStorageStore();
 const productStore = useProductsStore();
@@ -17,6 +31,7 @@ const isLoading = ref(false);
 const { categories } = storeToRefs(categoryStore);
 categoryStore.getAllCategory();
 
+
 const formCreateProduct = [
   { name: "name", label: "Nama", type: "text", value: "", placeholder: "Dilan 1990", required: true },
   { name: "description", label: "Deskripsi", type: "text", value: "", placeholder: "Pada September 1990, Milea dan keluarganya pindah dari Jakarta ke ...", required: true },
@@ -24,41 +39,40 @@ const formCreateProduct = [
   { name: "category", label: "Kategori", type: "select", value: "", placeholder: "", required: true },
 ];
 
-const createProduct = async () => {
+
+const updateProduct = async (payload: any) => {
+    console.log("Payload sebelum dikirim:", payload);
   isLoading.value = true;
   let file = formCreateProduct.find((item) => item.type === "file");
   file = await uploadFile(file?.value);
-  const result: { [key: string]: any } = {};
-  formCreateProduct.forEach((item: FormField) => {
-    if(item.name){
-      result[item.name] = item.value;
-    }
-  })
-  result.image = file;
-  await productStore.createProduct(result);
-  if(!productStore.status){
-    isSuccess.value = productStore.status;
-    message.value = productStore.message;
-    isShowAlert.value = true;
-    isLoading.value = false;
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }else{
-    isSuccess.value = productStore.status;
-    message.value = productStore.message;
-    isShowAlert.value = true;
-    isLoading.value = false;
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-    setTimeout(() => {
-      router.push({ path: "/product" });
-    }, 1000);
+  payload.image = file;
+
+
+  const { baseUrl, apikey } = useAppConfig();
+  const { data, error } = await useFetch(`/rest/v1/books?id=eq.${productId.value}`, {
+    baseURL: baseUrl,
+    method: "PATCH",
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: apikey,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  console.log("Respon dari server:", data);
+
+  if (error.value) {
+    isSuccess.value = false;
+    message.value = error.value.message;
+  } else if (data) {
+    isSuccess.value = true;
+    message.value = "Update product berhasil";
   }
-}
+
+  isLoading.value = false;
+  handleResult();
+};
+
 
 const uploadFile = async (formFile: any) => {
   const file = formFile?.target?.files[0];
@@ -66,22 +80,35 @@ const uploadFile = async (formFile: any) => {
   payload.append("file", file);
   const pathname = `${Date.now().toString()}.${file.type.split("/")[1]}`;
   await storageStore.uploadFile(pathname, payload);
-  if(storageStore.status){
+  if (storageStore.status) {
     return storageStore.storage.Key;
   }
-}
+};
+
+const handleResult = () => {
+  if (!isSuccess.value) {
+    isShowAlert.value = true;
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  } else {
+    isShowAlert.value = true;
+    setTimeout(() => {
+      router.push({ path: "/product" });
+    }, 1000);
+  }
+};
 </script>
-
-
 
 <template>
   <section class="flex justify-center py-10">
     <div class="w-[500px]">
-      <h1 class="text-2xl mb-7 font-medium">Tambah Buku</h1>
+      <h1 class="text-2xl mb-7 font-medium">Perbarui Buku</h1>
       <div v-if="isShowAlert" :class="`p-4 mb-4 text-sm rounded-lg ${isSuccess ? 'bg-green-100 text-green-800' : 'text-red-800 bg-red-100'}`" role="alert">
         {{ message }}
       </div>
-      <form @submit.prevent="createProduct">
+      <form @submit.prevent="updateProduct">
         <div class="mb-6" v-for="(item, index) in formCreateProduct" :key="index">
           <label
             :for="item.name"

@@ -30,39 +30,35 @@
         }
 
         const deleteProduct = async () => {
-  const { baseUrl, apikey } = useAppConfig();
+        const { baseUrl, apikey } = useAppConfig();
 
-  try {
-    const response = await useFetch(`/rest/v1/books/${oneProduct.value.id}`, {
-      baseURL: baseUrl,
-      method: 'DELETE',
-      headers: {
-        apikey: apikey,
-      },
-    });
+        try {
+          const response = await useFetch(`/rest/v1/books?id=eq.${oneProduct.value.id}`, {
+            baseURL: baseUrl,
+            method: 'DELETE',
+            headers: {
+              apikey: apikey,
+            },
+          });
 
-    if (response.error) {
-      console.error('Delete Product Failed:', response.error);
-      return;
-    }
-
-    // Assuming the deletion was successful, update the local data store
-    const localStorageData = localStorage.getItem('products');
-    let productOfCart: Products[] = [];
-
-    if (localStorageData) {
-      productOfCart = JSON.parse(localStorageData);
-    }
-
-    productOfCart = productOfCart.filter((item) => item.id !== oneProduct.value.id);
-
-    localStorage.setItem('products', JSON.stringify(productOfCart));
-
-    console.log('Product deleted successfully:', oneProduct.value);
-  } catch (error) {
-    console.error('Error during deleteProduct:', error);
-  }
-};
+          if (response.error) {
+            console.error('Delete Product Failed:', response.error);
+            return;
+          }
+          const localStorageData = localStorage.getItem('products');
+          let productOfCart: Products[] = [];
+          if (localStorageData) {
+            productOfCart = JSON.parse(localStorageData);
+          }
+          productOfCart = productOfCart.filter((item) => item.id !== oneProduct.value.id);
+          localStorage.setItem('products', JSON.stringify(productOfCart));
+          setTimeout(() => {
+            location.reload();
+          }, 1000);
+        } catch (error) {
+          console.error('Error during deleteProduct:', error);
+        }
+      };
 </script>
 <template>
     <section class="bg-white shadow-xl rounded-xl overflow-hidden">
@@ -85,6 +81,12 @@
             <div class="flex justify-between items-center">
                 <span class="text-sm font-normal">{{ props.product.category }}</span>
                 <!-- Add the delete button here -->
+                <NuxtLink :to="`/product/update/${props.product.id}`">
+                <button class="text-green-500 hover:text-green-700">
+                  Update
+                </button>
+              </NuxtLink>
+                <button @click="deleteProduct" class="text-red-500 hover:text-red-700">Delete</button>
             </div>
         </div>
     </section>

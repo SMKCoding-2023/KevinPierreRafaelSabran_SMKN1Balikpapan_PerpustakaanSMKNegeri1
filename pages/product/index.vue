@@ -22,6 +22,10 @@
     });
 
     const selectedCategory = ref("");
+
+    definePageMeta({
+        middleware: ["user-access"]
+    }); 
 </script>
 
 <template>
@@ -29,13 +33,12 @@
         <div class="container">
             <div class="py-5">
                 <div class="mb-6 flex justify-end gap-6">
-                    <NuxtLink to="/product/create" class="bg-green-500 text-white flex justify-center items-center px-3 rounded-lg">Create Products</NuxtLink>
-                    <NuxtLink to="/category/create" class="bg-orange-500 text-white flex justify-center items-center px-3 rounded-lg">Create Category</NuxtLink>
-                    <Dropdown @selected-category="selectedCategory = $event" />
+                    <NuxtLink to="/product/create" class="bg-green-500 h-10 text-white flex justify-center items-center px-3 rounded-lg">Tambah Buku</NuxtLink>
+                    <NuxtLink to="/category/create" class="bg-orange-500 text-white flex justify-center items-center px-3 rounded-lg">Tambah Kategori</NuxtLink>
                 </div>
                 <div class="flex gap-6 flex-wrap mx-auto">
                     <template v-for="(item, index) in allProducts" :key="index">
-                        <CardsCardProduct :product="item" class="w-[calc(100%/4-18px)]"/>
+                        <CardsCardProductAdmin :product="item" class="w-[calc(100%/4-18px)]"/>
                     </template>
                 </div>
             </div>
