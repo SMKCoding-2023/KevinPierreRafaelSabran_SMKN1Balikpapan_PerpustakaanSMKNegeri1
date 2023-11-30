@@ -24,8 +24,8 @@ export default defineNuxtConfig({
 
   pwa:{
     manifest:{
-      name: 'Berkah Bersama Alta',
-      short_name: 'Berkah Bersama Alta',
+      name: 'Perpustakaan SMK Negeri 1 Balikpapan',
+      short_name: 'Perpustakaan SMK Negeri 1 Balikpapan',
       theme_color: '#fff',
       background_color: '#fff',
       display: 'standalone',
