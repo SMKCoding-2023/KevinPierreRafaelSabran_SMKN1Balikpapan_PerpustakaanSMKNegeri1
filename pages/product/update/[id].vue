@@ -1,0 +1,156 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useProductsStore } from '~/stores/products';
+import { useRouter } from 'vue-router';
+import { useCategoryStore } from '~/stores/category';
+import { useStorageStore } from '~/stores/storage';
+import type { FormField } from '~/types/products';
+import { storeToRefs } from 'pinia';
+
+const productId = ref<number | null>(null);
+
+const route = useRoute();
+
+onMounted(() => {
+  const routeId = route.fullPath.split('/')[3];
+  if (routeId) {
+    productId.value = parseInt(routeId);
+  }
+});
+
+const categoryStore = useCategoryStore();
+const storageStore = useStorageStore();
+const productStore = useProductsStore();
+
+const isSuccess = ref(false);
+const isShowAlert = ref(false);
+const message = ref("");
+const router = useRouter();
+const isLoading = ref(false);
+
+const { categories } = storeToRefs(categoryStore);
+categoryStore.getAllCategory();
+
+
+const formCreateProduct = [
+  { name: "name", label: "Nama", type: "text", value: "", placeholder: "Dilan 1990", required: true },
+  { name: "description", label: "Deskripsi", type: "text", value: "", placeholder: "Pada September 1990, Milea dan keluarganya pindah dari Jakarta ke ...", required: true },
+  { name: "image", label: "Foto", type: "file", value: {}, placeholder: "", required: true },
+  { name: "category", label: "Kategori", type: "select", value: "", placeholder: "", required: true },
+];
+
+
+const updateProduct = async (payload: any) => {
+    console.log("Payload sebelum dikirim:", payload);
+  isLoading.value = true;
+  let file = formCreateProduct.find((item) => item.type === "file");
+  file = await uploadFile(file?.value);
+  payload.image = file;
+
+
+  const { baseUrl, apikey } = useAppConfig();
+  const { data, error } = await useFetch(`/rest/v1/books?id=eq.${productId.value}`, {
+    baseURL: baseUrl,
+    method: "PATCH",
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: apikey,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  console.log("Respon dari server:", data);
+
+  if (error.value) {
+    isSuccess.value = false;
+    message.value = error.value.message;
+  } else if (data) {
+    isSuccess.value = true;
+    message.value = "Update product berhasil";
+  }
+
+  isLoading.value = false;
+  handleResult();
+};
+
+
+const uploadFile = async (formFile: any) => {
+  const file = formFile?.target?.files[0];
+  const payload = new FormData();
+  payload.append("file", file);
+  const pathname = `${Date.now().toString()}.${file.type.split("/")[1]}`;
+  await storageStore.uploadFile(pathname, payload);
+  if (storageStore.status) {
+    return storageStore.storage.Key;
+  }
+};
+
+const handleResult = () => {
+  if (!isSuccess.value) {
+    isShowAlert.value = true;
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  } else {
+    isShowAlert.value = true;
+    setTimeout(() => {
+      router.push({ path: "/product" });
+    }, 1000);
+  }
+};
+</script>
+
+<template>
+  <section class="flex justify-center py-10">
+    <div class="w-[500px]">
+      <h1 class="text-2xl mb-7 font-medium">Perbarui Buku</h1>
+      <div v-if="isShowAlert" :class="`p-4 mb-4 text-sm rounded-lg ${isSuccess ? 'bg-green-100 text-green-800' : 'text-red-800 bg-red-100'}`" role="alert">
+        {{ message }}
+      </div>
+      <form @submit.prevent="updateProduct">
+        <div class="mb-6" v-for="(item, index) in formCreateProduct" :key="index">
+          <label
+            :for="item.name"
+            class="block mb-2 text-sm font-medium text-gray-900"
+          >
+            {{ item.label }}
+          </label>
+          <select
+            v-if="item.type === 'select'"
+            :id="item.name"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            v-model="item.value"
+          >
+            <option disabled value="">Pilih Kategori</option>
+            <option v-for="(category, index) in categories" :key="index" :value="category.name">{{ category.name }}</option>
+          </select>
+          <input
+            v-else-if="item.type === 'file'"
+            :type="item.type"
+            :id="item.name"
+            @change="item.value = $event"
+            class="w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:bg-primary file:border-none file:px-3 file:py-2 file:text-white file:mr-3"
+            :required="item.required"
+          >
+          <input
+            v-else
+            :type="item.type"
+            :id="item.name"
+            v-model="item.value"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            :placeholder="item.placeholder"
+            :required="item.required"
+          >
+        </div>
+        <button type="submit" class="text-white bg-primary hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center">
+          <span v-if="!isLoading">Kirim</span>
+          <div v-else class="flex items-center gap-3">
+              <div class="w-5 h-5 rounded-full border-2 border-t-blue-500 animate-spin"></div>
+              <span>Proses</span>
+          </div>
+        </button>
+      </form>
+    </div>    
+  </section>
+</template>
